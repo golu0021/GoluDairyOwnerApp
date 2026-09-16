@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#123b2a">
+<title>Golu Dairy Farm — Owner App</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f4f7f5;color:#17231d}
+header{background:#123b2a;color:#fff;padding:22px 18px;text-align:center}
+header h1{margin:0;font-size:24px}
+header p{margin:7px 0 0;opacity:.85}
+.wrap{max-width:900px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 5px 18px #00000012}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.stat{padding:16px;border-radius:14px;background:#eef5f0}
+.stat b{display:block;font-size:27px;margin-top:5px}
+label{display:block;font-weight:700;margin:13px 0 6px}
+input{width:100%;padding:13px;border:1px solid #ccd6cf;border-radius:10px;font-size:15px}
+button{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer}
+.primary{background:#123b2a;color:#fff}
+.secondary{background:#e9efeb;color:#123b2a}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+#status{margin-top:12px;font-size:14px}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th,td{text-align:left;padding:11px;border-bottom:1px solid #e5ebe7;font-size:14px}
+th{background:#f0f4f1}
+.empty{text-align:center;padding:28px;color:#68766e}
+footer{text-align:center;padding:20px;color:#6b776f;font-size:13px}
+@media(min-width:650px){.stats{grid-template-columns:repeat(4,1fr)}}
+
+.section-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.section-head h2{margin-bottom:4px}.muted{color:#68766e;margin:0;font-size:14px}
+.compact{margin-top:0}.small{padding:8px 11px;font-size:13px}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:18px;overflow:auto}
+.modal-box{max-width:650px;margin:30px auto;background:#fff;border-radius:18px;padding:22px;position:relative}
+.close{position:absolute;right:14px;top:14px;background:#eef2ef;color:#123b2a}
+.details{display:grid;gap:9px;margin-top:18px}
+.detail{padding:12px;border-radius:10px;background:#f3f6f4}
+.detail b{display:block;font-size:12px;color:#68766e;margin-bottom:4px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🐄 GOLU DAIRY FARM</h1>
+  <p>📍 Khagaria, Bihar</p>
+  <p>👑 Owner & Founder: <strong>Priyanshu Chaurasia</strong></p>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h2>🔐 Owner & Founder Login</h2>
+    <label>Email</label>
+    <input id="email" type="email" placeholder="Owner email">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="Password">
+    <div class="actions">
+      <button class="primary" onclick="login()">Login</button>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+    <div id="status">Not logged in.</div>
+  </section>
+
+  <section class="card">
+    <h2>📊 Dashboard</h2>
+    <div class="stats">
+      <div class="stat">Total Registrations<b id="total">0</b></div>
+      <div class="stat">Interested to Join<b id="join">0</b></div>
+      <div class="stat">Today's Registrations<b id="today">0</b></div>
+      <div class="stat">Founder Meeting<b id="meeting">0</b></div>
+    </div>
+    <div class="actions">
+      <button class="primary" onclick="loadData()">↻ Refresh Data</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="section-head">
+      <div>
+        <h2>📋 Registration Records</h2>
+        <p class="muted">Complete registered-person details</p>
+      </div>
+      <div class="actions compact">
+        <button class="secondary" onclick="exportCSV()">⬇ Export Records</button>
+        <button class="primary" onclick="printRecords()">🖨 Print</button>
+      </div>
+    </div>
+    <input id="search" placeholder="🔎 Search name, email, mobile, work..." oninput="render()">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Work</th><th>Skills</th><th>Achievement</th><th>Address</th><th>Join</th><th>Meeting</th><th>Interest</th><th>Registered</th><th>Action</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="12" class="empty">Login to load registrations.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div id="recordModal" class="modal" onclick="if(event.target===this)closeRecord()">
+    <div class="modal-box">
+      <button class="close" onclick="closeRecord()">✕</button>
+      <h2>👤 Full Registration Record</h2>
+      <div id="recordDetails" class="details"></div>
+    </div>
+  </div>
+</main>
+
+<footer><strong>GOLU DAIRY FARM</strong><br>👑 Owner & Founder: <strong>Priyanshu Chaurasia</strong><br>📍 Khagaria, Bihar, India</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://gfxqnqafnrzeirsazldh.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JGjvpEZQftMzq1eK8dR1dQ_uB8iCkAk";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let records = [];
+
+async function login(){
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  const status=document.getElementById("status");
+  if(!email || !password){status.textContent="Email and password required.";return}
+  status.textContent="Logging in...";
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){status.textContent="Login failed."; console.error(error); return}
+  status.textContent="✅ Logged in.";
+  await loadData();
+}
+
+async function logout(){
+  await sb.auth.signOut();
+  records=[];
+  document.getElementById("status").textContent="Logged out.";
+  render();
+}
+
+async function loadData(){
+  const {data:sessionData}=await sb.auth.getSession();
+  if(!sessionData.session){document.getElementById("status").textContent="Please login first.";return}
+  const {data,error}=await sb.from("registrations").select("*").order("created_at",{ascending:false});
+  if(error){document.getElementById("status").textContent="Could not load data.";console.error(error);return}
+  records=data||[];
+  document.getElementById("status").textContent="✅ Data refreshed.";
+  updateStats();
+  render();
+}
+
+function updateStats(){
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById("total").textContent=records.length;
+  document.getElementById("join").textContent=records.filter(x=>String(x.can_join_golu_dairy_farm||"").toLowerCase().startsWith("y")).length;
+  document.getElementById("today").textContent=records.filter(x=>String(x.created_at||"").slice(0,10)===today).length;
+  document.getElementById("meeting").textContent=records.filter(x=>String(x.meet_founder||"").toLowerCase().startsWith("y")).length;
+}
+
+function render(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const filtered=records.filter(x=>Object.values(x).some(v=>String(v??"").toLowerCase().includes(q)));
+  const tbody=document.getElementById("rows");
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="12" class="empty">No registrations found.</td></tr>';return}
+  tbody.innerHTML=filtered.map((x,i)=>`<tr>
+    <td>${safe(x.name)}</td><td>${safe(x.email)}</td><td>${safe(x.mobile)}</td>
+    <td>${safe(x.professional_work)}</td><td>${safe(x.skills)}</td><td>${safe(x.achievement)}</td>
+    <td>${safe(x.address)}</td><td>${safe(x.can_join_golu_dairy_farm)}</td>
+    <td>${safe(x.meet_founder)}</td><td>${safe(x.area_of_interest)}</td>
+    <td>${safe(formatDate(x.created_at))}<br><button class="view-btn" onclick="viewRecord(${records.indexOf(x)})">View Record</button></td>
+  </tr>`).join("");
+}
+function viewRecord(i){
+  const x=records[i];
+  if(!x) return;
+  const fields=[
+    ["Name",x.name],["Email",x.email],["Mobile",x.mobile],
+    ["Professional Work",x.professional_work],["Skills",x.skills],
+    ["Achievement",x.achievement],["Address",x.address],
+    ["Can Join Golu Dairy Farm",x.can_join_golu_dairy_farm],
+    ["Meet Founder",x.meet_founder],["Area of Interest",x.area_of_interest],
+    ["Registration Time",formatDate(x.created_at)]
+  ];
+  document.getElementById("recordDetails").innerHTML =
+    fields.map(([k,v])=>`<div class="detail"><b>${safe(k)}</b>${safe(v)||"—"}</div>`).join("");
+  document.getElementById("recordModal").style.display="block";
+}
+function formatDate(v){return v?new Date(v).toLocaleString("en-IN"):""}
+function downloadCSV(){
+  if(!records.length){alert("No records available.");return}
+  const headers=["Name","Email","Mobile","Professional Work","Skills","Achievement","Address","Can Join","Meet Founder","Area of Interest","Created At"];
+  const keys=["name","email","mobile","professional_work","skills","achievement","address","can_join_golu_dairy_farm","meet_founder","area_of_interest","created_at"];
+  const csv=[headers,...records.map(x=>keys.map(k=>String(k==="created_at"?formatDate(x[k]):(x[k]??"")).replace(/"/g,'""')))]
+    .map(r=>r.map(v=>`"${v}"`).join(",")).join("\\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="Golu_Dairy_Farm_Full_Registrations.csv"; a.click();
+}
+function printRecords(){window.print()}
+function safe(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function openRecord(index){
+  const x=records[index];
+  if(!x)return;
+  const fields=[
+    ["Name",x.name],["Email",x.email],["Mobile",x.mobile],
+    ["Professional Work",x.professional_work],["Skills",x.skills],
+    ["Achievement",x.achievement],["Address",x.address],
+    ["Can Join Golu Dairy Farm",x.can_join_golu_dairy_farm],
+    ["Meet Founder",x.meet_founder],["Area of Interest",x.area_of_interest],
+    ["Registration Date",x.created_at ? new Date(x.created_at).toLocaleString() : ""]
+  ];
+  document.getElementById("recordDetails").innerHTML=fields.map(([k,v])=>
+    `<div class="detail"><b>${safe(k)}</b>${safe(v||"Not provided")}</div>`).join("");
+  document.getElementById("recordModal").style.display="block";
+}
+function closeRecord(){document.getElementById("recordModal").style.display="none"}
+
+function exportCSV(){
+  if(!records.length){alert("No registration records available.");return}
+  const headers=["Name","Email","Mobile","Professional Work","Skills","Achievement","Address","Can Join","Meet Founder","Area of Interest","Created At"];
+  const keys=["name","email","mobile","professional_work","skills","achievement","address","can_join_golu_dairy_farm","meet_founder","area_of_interest","created_at"];
+  const esc=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+  const csv=[headers.map(esc).join(","),...records.map(r=>keys.map(k=>esc(r[k])).join(","))].join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="Golu_Dairy_Farm_Registration_Records.csv";a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function printRecords(){
+  if(!records.length){alert("No registration records available.");return}
+  const rows=records.map(x=>`<tr>
+    <td>${safe(x.name)}</td><td>${safe(x.email)}</td><td>${safe(x.mobile)}</td>
+    <td>${safe(x.professional_work)}</td><td>${safe(x.address)}</td>
+    <td>${safe(x.can_join_golu_dairy_farm)}</td><td>${safe(x.meet_founder)}</td>
+  </tr>`).join("");
+  const w=window.open("","_blank");
+  w.document.write(`<html><head><title>Golu Dairy Farm Records</title><style>
+  body{font-family:Arial;padding:20px}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #bbb;padding:7px;text-align:left;font-size:12px}th{background:#eee}
+  </style></head><body><h1>GOLU DAIRY FARM</h1><p>Khagaria, Bihar • Owner & Founder: Priyanshu Chaurasia</p>
+  <h2>Registration Records</h2><table><thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Work</th><th>Address</th><th>Join</th><th>Meeting</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  w.document.close();w.print();
+}
+</script>
+</body>
+</html>
