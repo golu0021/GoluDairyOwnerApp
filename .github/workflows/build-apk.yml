@@ -26,7 +26,7 @@ jobs:
         run: |
           rm -rf android-build
           mkdir android-build
-          unzip -q Golu-Dairy-Farm-Owner-Android-Project.zip -d android-build
+          unzip -q Golu-Dairy-Farm-Owner-Android-Project-Corrected.zip -d android-build
 
       - name: Build APK
         working-directory: android-build
