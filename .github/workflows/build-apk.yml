@@ -26,7 +26,7 @@ jobs:
         run: |
           rm -rf android-build
           mkdir android-build
-          unzip -q Golu-Dairy-Farm-Owner-Android-Project-Logo-Splash.zip -d android-build
+          Golu-Dairy-Farm-Owner-Android-Project-Login-Persistent-Splash-Fixed.zip
 
       - name: Build APK
         working-directory: android-build
